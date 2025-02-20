@@ -161,6 +161,9 @@ class SpellingBee:
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
             
+            # Drop existing table if it exists
+            c.execute('DROP TABLE IF EXISTS progress')
+            
             # Create table with user_id
             c.execute('''
                 CREATE TABLE IF NOT EXISTS progress

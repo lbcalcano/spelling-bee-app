@@ -43,43 +43,18 @@ class SpellingBee:
             json.dump(st.session_state.word_stats, f)
             
     def speak_word(self, word):
-        """Generate speech for the word and return audio HTML"""
+        """Generate speech for the word"""
         tts = gTTS(text=word, lang='en')
         # Save audio to a bytes buffer
         audio_bytes = tempfile.NamedTemporaryFile()
         tts.save(audio_bytes.name)
         
-        # Read audio file and get base64
+        # Read audio file into bytes
         with open(audio_bytes.name, 'rb') as f:
             audio_data = f.read()
         audio_bytes.close()
         
-        audio_base64 = base64.b64encode(audio_data).decode()
-        
-        # Create a more mobile-friendly audio player
-        audio_html = f'''
-            <div>
-                <audio id="word-audio" style="width: 100%;">
-                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                </audio>
-                <script>
-                    var audio = document.getElementById('word-audio');
-                    audio.play().catch(function(error) {{
-                        console.log("Audio playback failed:", error);
-                    }});
-                    
-                    // For iOS, we need user interaction
-                    document.body.addEventListener('click', function() {{
-                        audio.play().catch(function(error) {{
-                            console.log("Audio playback failed:", error);
-                        }});
-                    }}, {{once: true}});
-                </script>
-            </div>
-        '''
-        st.components.v1.html(audio_html, height=50)
-        
-        return audio_base64
+        return audio_data
 
 def main():
     st.set_page_config(page_title="Spelling Bee Practice", page_icon="🐝")
@@ -157,31 +132,20 @@ def main():
         if st.session_state.current_word is None:
             st.session_state.current_word = st.session_state.current_words[st.session_state.word_count]
             st.session_state.attempts = 0
-            # Generate and play audio
-            audio_base64 = game.speak_word(st.session_state.current_word)
-            st.session_state.current_audio = audio_base64
+            # Generate audio
+            audio_data = game.speak_word(st.session_state.current_word)
+            st.session_state.current_audio = audio_data
             
         # Display progress
         st.write(f"Word {st.session_state.word_count + 1} of {len(st.session_state.current_words)}")
         
-        # Audio controls for repeat
+        # Audio controls using Streamlit's native audio component
         col1, col2 = st.columns([1, 4])
         with col1:
+            st.audio(st.session_state.current_audio, format='audio/mp3')
             if st.button("🔊 Play Word"):
-                audio_html = f'''
-                    <div>
-                        <audio id="word-audio-repeat" style="width: 100%;">
-                            <source src="data:audio/mp3;base64,{st.session_state.current_audio}" type="audio/mp3">
-                        </audio>
-                        <script>
-                            var audio = document.getElementById('word-audio-repeat');
-                            audio.play().catch(function(error) {{
-                                console.log("Audio playback failed:", error);
-                            }});
-                        </script>
-                    </div>
-                '''
-                st.components.v1.html(audio_html, height=50)
+                # This will trigger the audio to play
+                st.experimental_rerun()
         
         # Generate unique keys for form and input
         form_key = f"word_form_{st.session_state.word_count}_{st.session_state.attempts}"
@@ -209,8 +173,8 @@ def main():
                     st.session_state.attempts += 1
                     if st.session_state.attempts == 1:
                         st.error("❌ Incorrect. Try once more!")
-                        # Speak the word again after first wrong attempt
-                        os.system(f'say "{st.session_state.current_word}"')
+                        # Play audio using Streamlit's native component
+                        st.audio(st.session_state.current_audio, format='audio/mp3')
                         st.rerun()
                     else:
                         st.error(f"❌ Incorrect. The correct spelling is: {st.session_state.current_word}")

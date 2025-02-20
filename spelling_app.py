@@ -9,9 +9,11 @@ from datetime import datetime
 import base64
 import time
 import pandas as pd
+import sqlite3
 
 class SpellingBee:
     def __init__(self):
+        self.setup_db()
         self.load_words()
         # Initialize session state if not exists
         if 'word_stats' not in st.session_state:
@@ -25,6 +27,25 @@ class SpellingBee:
         if 'word_count' not in st.session_state:
             st.session_state.word_count = 0
             
+    def setup_db(self):
+        try:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            db_path = os.path.join(script_dir, "spelling_progress.db")
+            
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            
+            # Create table if it doesn't exist
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS progress
+                (word TEXT PRIMARY KEY, attempts INTEGER, last_practiced TEXT)
+            ''')
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            st.error(f"Could not setup database: {str(e)}")
+
     def load_words(self):
         try:
             # Get the directory where the script is located
@@ -41,22 +62,42 @@ class SpellingBee:
     def load_progress(self):
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            progress_path = os.path.join(script_dir, "spelling_progress.json")
+            db_path = os.path.join(script_dir, "spelling_progress.db")
             
-            if os.path.exists(progress_path):
-                with open(progress_path, 'r') as f:
-                    return json.load(f)
+            if not os.path.exists(db_path):
+                return {}
+            
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            
+            # Get all progress
+            c.execute('SELECT word, attempts FROM progress')
+            results = c.dict(c.fetchall())
+            
+            conn.close()
+            
+            return {row[0]: row[1] for row in results}
         except Exception as e:
             st.error(f"Could not load progress: {str(e)}")
-        return {}
+            return {}
             
     def save_progress(self):
         try:
-            script_dir = os.path.dirname(os.path.dirname(__file__))
-            progress_path = os.path.join(script_dir, "spelling_progress.json")
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            db_path = os.path.join(script_dir, "spelling_progress.db")
             
-            with open(progress_path, 'w') as f:
-                json.dump(st.session_state.word_stats, f)
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            
+            # Update or insert progress for each word
+            for word, attempts in st.session_state.word_stats.items():
+                c.execute('''
+                    INSERT OR REPLACE INTO progress (word, attempts, last_practiced)
+                    VALUES (?, ?, ?)
+                ''', (word, attempts, datetime.now().isoformat()))
+            
+            conn.commit()
+            conn.close()
         except Exception as e:
             st.error(f"Could not save progress: {str(e)}")
             

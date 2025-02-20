@@ -138,7 +138,7 @@ class SpellingBee:
             
             # Get user's password hash
             c.execute('SELECT password_hash FROM users WHERE username = ?', (username,))
-                      c.fetchone()
+            result = c.fetchone()
             
             if not result:
                 return False

@@ -185,6 +185,35 @@ def main():
             st.write(f"✅ Learned after retry: {learned}")
             st.write(f"📝 Need more practice: {practice}")
     
+    elif not st.session_state.practice_mode:
+        # Add practice buttons
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Start New Practice"):
+                available_words = [w for w in game.words if w not in st.session_state.word_stats]
+                st.session_state.current_words = random.sample(
+                    available_words,
+                    len(available_words)  # Use all available words
+                )
+                st.session_state.practice_mode = True
+                st.session_state.word_count = 0
+                st.rerun()
+        
+        with col2:
+            if st.button("Practice Wrong Words"):
+                wrong_words = [w for w in game.words if w in st.session_state.word_stats 
+                             and st.session_state.word_stats[w] > 1]
+                if wrong_words:
+                    st.session_state.current_words = random.sample(
+                        wrong_words,
+                        len(wrong_words)  # Use all wrong words
+                    )
+                    st.session_state.practice_mode = True
+                    st.session_state.word_count = 0
+                    st.rerun()
+                else:
+                    st.warning("No words to practice!")
+    
     else:  # Practice mode
         if not st.session_state.current_words:
             st.session_state.practice_mode = False

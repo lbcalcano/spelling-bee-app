@@ -155,12 +155,20 @@ def main():
         # Display progress
         st.write(f"Word {st.session_state.word_count + 1} of {len(st.session_state.current_words)}")
         
-        # Audio controls using Streamlit's native audio component
+        # Audio controls in a more mobile-friendly way
+        st.write("👇 Tap the play button below to hear the word:")
+        
+        # Create two columns for better layout
         col1, col2 = st.columns([1, 4])
         with col1:
+            # Show play button with clear instructions
+            st.markdown("### 🔊")
+        with col2:
+            # Show audio player with clear controls
             st.audio(st.session_state.current_audio, format='audio/mp3')
-            if st.button("🔊 Play Word"):
-                st.rerun()
+        
+        # Add a spacer
+        st.write("")
         
         # Generate unique keys for form and input
         form_key = f"word_form_{st.session_state.word_count}_{st.session_state.attempts}"
@@ -188,7 +196,8 @@ def main():
                     st.session_state.attempts += 1
                     if st.session_state.attempts == 1:
                         st.error("❌ Incorrect. Try once more!")
-                        # Play audio using Streamlit's native component
+                        # Show audio player again after incorrect attempt
+                        st.write("Listen again:")
                         st.audio(st.session_state.current_audio, format='audio/mp3')
                         st.rerun()
                     else:

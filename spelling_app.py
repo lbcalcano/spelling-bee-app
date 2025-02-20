@@ -38,25 +38,114 @@ class SpellingBee:
         
     def show_login(self):
         st.title("🐝 Spelling Bee Login")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
         
-        if st.button("Login"):
-            if self.verify_credentials(username, password):
-                st.session_state.username = username
-                st.rerun()
-            else:
-                st.error("Invalid username or password")
-                
-    def verify_credentials(self, username, password):
-        if "users" not in st.secrets:
-            st.error("No users configured. Please contact administrator.")
-            return False
+        # Add tabs for Login and Register
+        tab1, tab2 = st.tabs(["Login", "Register"])
         
-        if username not in st.secrets.users:
-            return False
+        with tab1:  # Login Tab
+            username = st.text_input("Username", key="login_username")
+            password = st.text_input("Password", type="password", key="login_password")
             
-        return st.secrets.users[username] == password
+            if st.button("Login", key="login_button"):
+                if self.verify_credentials(username, password):
+                    st.session_state.username = username
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password")
+        
+        with tab2:  # Register Tab
+            new_username = st.text_input("Choose Username", key="reg_username")
+            new_password = st.text_input("Choose Password", type="password", key="reg_password")
+            confirm_password = st.text_input("Confirm Password", type="password", key="reg_confirm")
+            
+            if st.button("Register", key="register_button"):
+                if self.register_user(new_username, new_password, confirm_password):
+                    st.success("Registration successful! Please login.")
+                    time.sleep(2)
+                    st.rerun()
+    
+    def register_user(self, username, password, confirm_password):
+        try:
+            # Basic validation
+            if not username or not password:
+                st.error("Username and password are required")
+                return False
+                
+            if password != confirm_password:
+                st.error("Passwords do not match")
+                return False
+                
+            if len(password) < 6:
+                st.error("Password must be at least 6 characters long")
+                return False
+            
+            # Check if username exists
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            db_path = os.path.join(script_dir, "users.db")
+            
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            
+            # Create users table if it doesn't exist
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS users
+                (username TEXT PRIMARY KEY,
+                 password_hash TEXT,
+                 created_at TEXT)
+            ''')
+            
+            # Check if username exists
+            c.execute('SELECT username FROM users WHERE username = ?', (username,))
+            if c.fetchone():
+                st.error("Username already exists")
+                conn.close()
+                return False
+            
+            # Hash the password
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            
+            # Insert new user
+            c.execute('''
+                INSERT INTO users (username, password_hash, created_at)
+                VALUES (?, ?, ?)
+            ''', (username, password_hash, datetime.now().isoformat()))
+            
+            conn.commit()
+            conn.close()
+            return True
+            
+        except Exception as e:
+            st.error(f"Registration failed: {str(e)}")
+            return False
+    
+    def verify_credentials(self, username, password):
+        try:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            db_path = os.path.join(script_dir, "users.db")
+            
+            if not os.path.exists(db_path):
+                st.error("No users database found")
+                return False
+            
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            
+            # Get user's password hash
+            c.execute('SELECT password_hash FROM users WHERE username = ?', (username,))
+            result = c.fetchone()
+            
+            if not result:
+                return False
+            
+            stored_hash = result[0]
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            
+            conn.close()
+            return stored_hash == password_hash
+            
+        except Exception as e:
+            st.error(f"Login failed: {str(e)}")
+            return False
     
     def setup_db(self):
         try:

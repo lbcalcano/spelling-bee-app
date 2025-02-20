@@ -66,18 +66,57 @@ class SpellingBee:
     
     def register_user(self, username, password, confirm_password):
         try:
-            # Basic validation
-            if not username or not password:
-                st.error("Username and password are required")
+            # Username validation
+            if not username:
+                st.error("Username is required")
+                return False
+            
+            if len(username) < 3:
+                st.error("Username must be at least 3 characters long")
+                return False
+            
+            if not username.isalnum():
+                st.error("Username can only contain letters and numbers")
+                return False
+            
+            # Password validation
+            if not password:
+                st.error("Password is required")
+                return False
+            
+            # Password requirements
+            has_upper = any(c.isupper() for c in password)
+            has_lower = any(c.islower() for c in password)
+            has_digit = any(c.isdigit() for c in password)
+            has_special = any(not c.isalnum() for c in password)
+            
+            if len(password) < 8:
+                st.error("Password must be at least 8 characters long")
                 return False
                 
+            if not (has_upper and has_lower):
+                st.error("Password must contain both uppercase and lowercase letters")
+                return False
+                
+            if not has_digit:
+                st.error("Password must contain at least one number")
+                return False
+                
+            if not has_special:
+                st.error("Password must contain at least one special character")
+                return False
+            
             if password != confirm_password:
                 st.error("Passwords do not match")
                 return False
-                
-            if len(password) < 6:
-                st.error("Password must be at least 6 characters long")
-                return False
+            
+            # Show password requirements in the UI
+            with st.expander("Password Requirements"):
+                st.write("Password must:")
+                st.write("- Be at least 8 characters long")
+                st.write("- Contain uppercase and lowercase letters")
+                st.write("- Contain at least one number")
+                st.write("- Contain at least one special character")
             
             # Check if username exists
             script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -112,6 +151,8 @@ class SpellingBee:
             
             conn.commit()
             conn.close()
+            
+            st.success("✅ All requirements met!")
             return True
             
         except Exception as e:

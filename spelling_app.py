@@ -7,6 +7,7 @@ from gtts import gTTS
 import tempfile
 from datetime import datetime
 import base64
+import time
 
 class SpellingBee:
     def __init__(self):
@@ -202,9 +203,14 @@ def main():
             
             if submit_button:
                 if user_input == st.session_state.current_word:
-                    st.success("✨ Correct!")
+                    # Create a success container that will stay visible
+                    success_container = st.empty()
+                    success_container.success("✨ Correct! Moving to next word in 2 seconds...")
                     st.session_state.word_stats[st.session_state.current_word] = st.session_state.attempts + 1
                     game.save_progress()
+                    
+                    # Add a delay before moving to next word
+                    time.sleep(2)
                     
                     # Move to next word
                     st.session_state.word_count += 1
@@ -214,15 +220,27 @@ def main():
                 else:
                     st.session_state.attempts += 1
                     if st.session_state.attempts == 1:
-                        st.error("❌ Incorrect. Try once more!")
+                        error_msg = st.error("❌ Incorrect. Try once more!")
                         # Show audio player again after incorrect attempt
                         st.write("Listen again:")
-                        st.audio(st.session_state.current_audio, format='audio/mp3')
+                        if st.session_state.current_audio is not None:
+                            audio_html = f'''
+                                <audio controls>
+                                    <source src="data:audio/mpeg;base64,{base64.b64encode(st.session_state.current_audio).decode()}" type="audio/mpeg">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                '''
+                            st.components.v1.html(audio_html, height=50)
+                        time.sleep(1)  # Give time to read the error
                         st.rerun()
                     else:
-                        st.error(f"❌ Incorrect. The correct spelling is: {st.session_state.current_word}")
+                        error_container = st.empty()
+                        error_container.error(f"❌ Incorrect. The correct spelling is: {st.session_state.current_word}")
                         st.session_state.word_stats[st.session_state.current_word] = st.session_state.attempts
                         game.save_progress()
+                        
+                        # Add delay before moving to next word
+                        time.sleep(3)
                         
                         # Move to next word
                         st.session_state.word_count += 1

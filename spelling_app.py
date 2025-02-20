@@ -321,7 +321,7 @@ class SpellingBee:
                 words, count, timestamp = result
                 return {
                     'words': words.split(','),
-                    'count': count,
+                    'count': int(count),  # Ensure count is an integer
                     'timestamp': timestamp
                 }
             return None
@@ -477,15 +477,16 @@ def main():
                     time_ago = f"{time_diff.days} days ago"
                 
                 # Show remaining words instead of total
-                remaining_words = len(last_session['words']) - last_session['count']
+                current_word_index = last_session['count']
+                remaining_words = len(last_session['words']) - current_word_index
                 progress = f"{remaining_words} words remaining"
+                
                 if st.button(f"Continue Last Practice ({progress}, {time_ago})"):
                     st.session_state.current_words = last_session['words']
-                    st.session_state.word_count = last_session['count']
+                    st.session_state.word_count = current_word_index  # Use the exact index
                     st.session_state.practice_mode = True
                     st.session_state.current_word = None
-                    st.session_state.attempts = 0  # Reset attempts for new word
-                    game.save_session()  # Save the session immediately
+                    st.session_state.attempts = 0
                     st.rerun()
         
         with col3:

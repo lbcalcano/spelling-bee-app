@@ -395,9 +395,9 @@ def main():
     # Initialize game at the start
     game = SpellingBee()
     
-    # Title and developer credit
-    st.title("🐝 Spelling Bee Practice")
-    st.markdown("<div style='text-align: right; color: gray; font-size: 0.8em;'>Developed by LBC Productions</div>", unsafe_allow_html=True)
+    # Only show title and credit if logged in
+    if 'username' in st.session_state:
+        st.title("🐝 Spelling Bee Practice")
     
     # Add mobile instructions
     if st.session_state.get('first_visit', True):
@@ -681,7 +681,7 @@ def main():
             st.session_state.current_words = []
             st.rerun()
 
-    # Add developer credit at the bottom as well
+    # Keep only the bottom credit
     st.markdown("<br><hr><div style='text-align: center; color: gray; font-size: 0.8em; padding: 20px;'>Developed by LBC Productions</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":

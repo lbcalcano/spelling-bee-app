@@ -8,6 +8,7 @@ import tempfile
 from datetime import datetime
 import base64
 import time
+import pandas as pd
 
 class SpellingBee:
     def __init__(self):
@@ -148,19 +149,9 @@ def main():
         if st.session_state.word_stats:
             st.header("Results")
             
-            # Create a list of tuples with (word, attempts)
-            word_stats_list = [(word, attempts) for word, attempts in st.session_state.word_stats.items()]
-            
-            # Sort by number of attempts (descending)
-            word_stats_list.sort(key=lambda x: x[1], reverse=True)
-            
-            # Create a table
-            st.markdown("""
-            | Word | Status | Attempts | Result |
-            |------|--------|----------|---------|
-            """)
-            
-            for word, attempts in word_stats_list:
+            # Create a list of dictionaries for the DataFrame
+            word_stats_data = []
+            for word, attempts in st.session_state.word_stats.items():
                 if attempts == 1:
                     status = "⭐"
                     result = "Perfect!"
@@ -171,14 +162,35 @@ def main():
                     status = "📝"
                     result = "Needs Practice"
                 
-                st.markdown(f"| {word} | {status} | {attempts} | {result} |")
+                word_stats_data.append({
+                    "Word": word,
+                    "Status": status,
+                    "Attempts": attempts,
+                    "Result": result
+                })
+            
+            # Sort by attempts (descending)
+            word_stats_data.sort(key=lambda x: x["Attempts"], reverse=True)
+            
+            # Create and display DataFrame
+            df = pd.DataFrame(word_stats_data)
+            st.dataframe(
+                df,
+                column_config={
+                    "Word": st.column_config.TextColumn("Word", width=200),
+                    "Status": st.column_config.TextColumn("Status", width=100),
+                    "Attempts": st.column_config.NumberColumn("Attempts", width=100),
+                    "Result": st.column_config.TextColumn("Result", width=150)
+                },
+                hide_index=True
+            )
             
             # Add summary statistics
             st.write("---")
             st.write("Summary:")
-            perfect = len([w for w, a in word_stats_list if a == 1])
-            learned = len([w for w, a in word_stats_list if a == 2])
-            practice = len([w for w, a in word_stats_list if a > 2])
+            perfect = len([d for d in word_stats_data if d["Attempts"] == 1])
+            learned = len([d for d in word_stats_data if d["Attempts"] == 2])
+            practice = len([d for d in word_stats_data if d["Attempts"] > 2])
             
             st.write(f"⭐ Perfect first try: {perfect}")
             st.write(f"✅ Learned after retry: {learned}")

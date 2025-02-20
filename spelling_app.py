@@ -250,6 +250,9 @@ class SpellingBee:
 def main():
     st.set_page_config(page_title="Spelling Bee Practice", page_icon="🐝")
     
+    # Initialize game at the start
+    game = SpellingBee()
+    
     # Title and developer credit
     st.title("🐝 Spelling Bee Practice")
     st.markdown("<div style='text-align: right; color: gray; font-size: 0.8em;'>Developed by LBC Productions</div>", unsafe_allow_html=True)
@@ -260,7 +263,6 @@ def main():
         st.session_state.first_visit = False
     
     if 'username' not in st.session_state:
-        game = SpellingBee()
         return
     
     # Sidebar with statistics

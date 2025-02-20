@@ -49,22 +49,47 @@ class SpellingBee:
         audio_bytes = tempfile.NamedTemporaryFile()
         tts.save(audio_bytes.name)
         
-        # Auto-play audio using HTML
+        # Read audio file and get base64
         with open(audio_bytes.name, 'rb') as f:
             audio_data = f.read()
         audio_bytes.close()
         
         audio_base64 = base64.b64encode(audio_data).decode()
-        audio_html = f'<audio autoplay><source src="data:audio/mp3;base64,{audio_base64}"></audio>'
-        st.components.v1.html(audio_html, height=0)
         
-        # Also return the base64 data for the repeat button
+        # Create a more mobile-friendly audio player
+        audio_html = f'''
+            <div>
+                <audio id="word-audio" style="width: 100%;">
+                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                </audio>
+                <script>
+                    var audio = document.getElementById('word-audio');
+                    audio.play().catch(function(error) {{
+                        console.log("Audio playback failed:", error);
+                    }});
+                    
+                    // For iOS, we need user interaction
+                    document.body.addEventListener('click', function() {{
+                        audio.play().catch(function(error) {{
+                            console.log("Audio playback failed:", error);
+                        }});
+                    }}, {{once: true}});
+                </script>
+            </div>
+        '''
+        st.components.v1.html(audio_html, height=50)
+        
         return audio_base64
 
 def main():
     st.set_page_config(page_title="Spelling Bee Practice", page_icon="🐝")
     
     st.title("🐝 Spelling Bee Practice")
+    
+    # Add mobile instructions
+    if st.session_state.get('first_visit', True):
+        st.info("📱 On mobile devices: Tap 'Play Word' to hear the word. Make sure your sound is on!")
+        st.session_state.first_visit = False
     
     game = SpellingBee()
     
@@ -142,9 +167,21 @@ def main():
         # Audio controls for repeat
         col1, col2 = st.columns([1, 4])
         with col1:
-            if st.button("🔊 Repeat"):
-                audio_html = f'<audio autoplay><source src="data:audio/mp3;base64,{st.session_state.current_audio}"></audio>'
-                st.components.v1.html(audio_html, height=0)
+            if st.button("🔊 Play Word"):
+                audio_html = f'''
+                    <div>
+                        <audio id="word-audio-repeat" style="width: 100%;">
+                            <source src="data:audio/mp3;base64,{st.session_state.current_audio}" type="audio/mp3">
+                        </audio>
+                        <script>
+                            var audio = document.getElementById('word-audio-repeat');
+                            audio.play().catch(function(error) {{
+                                console.log("Audio playback failed:", error);
+                            }});
+                        </script>
+                    </div>
+                '''
+                st.components.v1.html(audio_html, height=50)
         
         # Generate unique keys for form and input
         form_key = f"word_form_{st.session_state.word_count}_{st.session_state.attempts}"

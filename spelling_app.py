@@ -169,6 +169,9 @@ def main():
         # Display progress
         st.write(f"Word {st.session_state.word_count + 1} of {len(st.session_state.current_words)}")
         
+        # Single audio player container that we'll reuse
+        audio_container = st.empty()
+        
         # Audio controls in a more mobile-friendly way
         st.write("👇 Tap the play button below to hear the word:")
         
@@ -185,7 +188,7 @@ def main():
                         Your browser does not support the audio element.
                     </audio>
                     '''
-                st.components.v1.html(audio_html, height=50)
+                audio_container.components.v1.html(audio_html, height=50)
         
         # Add a spacer
         st.write("")
@@ -194,7 +197,7 @@ def main():
         form_key = f"word_form_{st.session_state.word_count}_{st.session_state.attempts}"
         input_key = f"word_input_{st.session_state.word_count}_{st.session_state.attempts}"
         
-        # Word input using a form with unique keys
+        # Word input form
         with st.form(key=form_key):
             user_input = st.text_input("Type the word and press Enter:", 
                                      key=input_key,
@@ -203,46 +206,27 @@ def main():
             
             if submit_button:
                 if user_input == st.session_state.current_word:
-                    # Create a success container that will stay visible
                     success_container = st.empty()
                     success_container.success("✨ Correct! Moving to next word in 2 seconds...")
                     st.session_state.word_stats[st.session_state.current_word] = st.session_state.attempts + 1
                     game.save_progress()
-                    
-                    # Add a delay before moving to next word
                     time.sleep(2)
-                    
-                    # Move to next word
                     st.session_state.word_count += 1
                     st.session_state.current_word = None
                     st.rerun()
-                    
                 else:
                     st.session_state.attempts += 1
                     if st.session_state.attempts == 1:
-                        error_msg = st.error("❌ Incorrect. Try once more!")
-                        # Show audio player again after incorrect attempt
+                        st.error("❌ Incorrect. Try once more!")
                         st.write("Listen again:")
-                        if st.session_state.current_audio is not None:
-                            audio_html = f'''
-                                <audio controls>
-                                    <source src="data:audio/mpeg;base64,{base64.b64encode(st.session_state.current_audio).decode()}" type="audio/mpeg">
-                                    Your browser does not support the audio element.
-                                </audio>
-                                '''
-                            st.components.v1.html(audio_html, height=50)
-                        time.sleep(1)  # Give time to read the error
+                        time.sleep(1)
                         st.rerun()
                     else:
                         error_container = st.empty()
                         error_container.error(f"❌ Incorrect. The correct spelling is: {st.session_state.current_word}")
                         st.session_state.word_stats[st.session_state.current_word] = st.session_state.attempts
                         game.save_progress()
-                        
-                        # Add delay before moving to next word
                         time.sleep(3)
-                        
-                        # Move to next word
                         st.session_state.word_count += 1
                         st.session_state.current_word = None
                         st.rerun()

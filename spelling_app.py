@@ -277,7 +277,9 @@ class SpellingBee:
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
             
-            # Save current session
+            # Save current session with debug info
+            st.write(f"Saving session: {st.session_state.word_count} words completed")  # Debug info
+            
             c.execute('''
                 INSERT OR REPLACE INTO sessions
                 (user_id, current_words, word_count, last_updated)
@@ -473,11 +475,14 @@ def main():
                     time_ago = "yesterday"
                 else:
                     time_ago = f"{time_diff.days} days ago"
-                    
-                if st.button(f"Continue Last Practice ({time_ago})"):
+                
+                # Show progress in the button text
+                progress = f"{last_session['count'] + 1}/{len(last_session['words'])}"
+                if st.button(f"Continue Last Practice ({progress} words, {time_ago})"):
                     st.session_state.current_words = last_session['words']
-                    st.session_state.word_count = last_session['count']
+                    st.session_state.word_count = last_session['count']  # This is already correct
                     st.session_state.practice_mode = True
+                    st.session_state.current_word = None  # Force new word initialization
                     st.rerun()
         
         with col3:

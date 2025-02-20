@@ -484,7 +484,7 @@ def main():
         st.session_state.show_statistics = False
     
     if st.session_state.show_statistics:
-        st.header("Word Statistics")
+        st.header("📊 Word Statistics Report")
         if st.button("← Back to Practice", type="secondary"):
             st.session_state.show_statistics = False
             st.rerun()

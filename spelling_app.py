@@ -39,6 +39,15 @@ class SpellingBee:
     def show_login(self):
         st.markdown("### 🐝 Spelling Bee Login")  # Smaller login header
         
+        # Add guest login button prominently at the top
+        if st.button("👤 Continue as Guest", use_container_width=True):
+            # Create a unique guest username
+            guest_id = f"guest_{int(time.time())}"
+            st.session_state.username = guest_id
+            st.rerun()
+        
+        st.write("---")  # Add divider between guest and regular login
+        
         # Add tabs for Login and Register
         tab1, tab2 = st.tabs(["Login", "Register"])
         

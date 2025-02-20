@@ -60,17 +60,30 @@ class SpellingBee:
             
     def speak_word(self, word):
         """Generate speech for the word"""
-        tts = gTTS(text=word, lang='en')
-        # Save audio to a bytes buffer
-        audio_bytes = tempfile.NamedTemporaryFile()
-        tts.save(audio_bytes.name)
-        
-        # Read audio file into bytes
-        with open(audio_bytes.name, 'rb') as f:
-            audio_data = f.read()
-        audio_bytes.close()
-        
-        return audio_data
+        try:
+            tts = gTTS(text=word, lang='en', slow=False)
+            audio_bytes = tempfile.NamedTemporaryFile(suffix='.mp3')
+            tts.save(audio_bytes.name)
+            
+            # Read audio file into bytes and convert to base64
+            with open(audio_bytes.name, 'rb') as f:
+                audio_bytes_data = f.read()
+            
+            # Clean up temp file
+            audio_bytes.close()
+            
+            # Create HTML with audio element
+            audio_html = f'''
+                <audio controls>
+                    <source src="data:audio/mpeg;base64,{base64.b64encode(audio_bytes_data).decode()}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                '''
+            st.components.v1.html(audio_html, height=50)
+            return audio_bytes_data
+        except Exception as e:
+            st.error(f"Error generating audio: {str(e)}")
+            return None
 
 def main():
     st.set_page_config(page_title="Spelling Bee Practice", page_icon="🐝")
@@ -161,11 +174,17 @@ def main():
         # Create two columns for better layout
         col1, col2 = st.columns([1, 4])
         with col1:
-            # Show play button with clear instructions
             st.markdown("### 🔊")
         with col2:
-            # Show audio player with clear controls
-            st.audio(st.session_state.current_audio, format='audio/mp3')
+            if st.session_state.current_audio is not None:
+                # Create HTML with audio element
+                audio_html = f'''
+                    <audio controls>
+                        <source src="data:audio/mpeg;base64,{base64.b64encode(st.session_state.current_audio).decode()}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                    '''
+                st.components.v1.html(audio_html, height=50)
         
         # Add a spacer
         st.write("")

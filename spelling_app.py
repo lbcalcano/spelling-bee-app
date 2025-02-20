@@ -330,6 +330,65 @@ class SpellingBee:
             st.error(f"Could not load session: {str(e)}")
             return None
 
+    def is_admin(self, username):
+        return username == "admin"  # You can modify this to include more admin users
+
+    def get_user_stats(self):
+        try:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            users_db = os.path.join(script_dir, "users.db")
+            progress_db = os.path.join(script_dir, "spelling_progress.db")
+            
+            users_conn = sqlite3.connect(users_db)
+            progress_conn = sqlite3.connect(progress_db)
+            
+            uc = users_conn.cursor()
+            pc = progress_conn.cursor()
+            
+            # Get registered users
+            uc.execute('SELECT username, created_at FROM users')
+            registered_users = uc.fetchall()
+            
+            # Get all users' progress (including guests)
+            pc.execute('''
+                SELECT user_id, COUNT(DISTINCT word) as words_practiced,
+                       COUNT(CASE WHEN attempts = 1 THEN 1 END) as perfect_words,
+                       MAX(last_practiced) as last_active
+                FROM progress
+                GROUP BY user_id
+            ''')
+            progress_data = pc.fetchall()
+            
+            # Combine the data
+            user_stats = []
+            guest_count = 0
+            
+            for user_id, words, perfect, last_active in progress_data:
+                is_guest = user_id.startswith('guest_')
+                if is_guest:
+                    guest_count += 1
+                
+                user_stats.append({
+                    'Username': user_id,
+                    'Type': 'Guest' if is_guest else 'Registered',
+                    'Words Practiced': words,
+                    'Perfect Words': perfect,
+                    'Last Active': datetime.fromisoformat(last_active).strftime('%Y-%m-%d %H:%M')
+                })
+            
+            users_conn.close()
+            progress_conn.close()
+            
+            return {
+                'user_stats': user_stats,
+                'total_registered': len(registered_users),
+                'total_guests': guest_count
+            }
+            
+        except Exception as e:
+            st.error(f"Could not get user statistics: {str(e)}")
+            return None
+
 def main():
     st.set_page_config(page_title="Spelling Bee Practice", page_icon="🐝")
     
@@ -384,6 +443,39 @@ def main():
         if st.button("Logout"):
             del st.session_state.username
             st.rerun()
+        
+        # Add admin section
+        if 'username' in st.session_state and game.is_admin(st.session_state.username):
+            st.write("---")
+            st.subheader("👑 Admin Dashboard")
+            
+            stats = game.get_user_stats()
+            if stats:
+                st.write(f"Total Users: {stats['total_registered'] + stats['total_guests']}")
+                st.write(f"- Registered: {stats['total_registered']}")
+                st.write(f"- Guests: {stats['total_guests']}")
+                
+                st.write("---")
+                st.write("User Details:")
+                
+                # Create DataFrame for user stats
+                df = pd.DataFrame(stats['user_stats'])
+                
+                # Sort by Words Practiced (descending)
+                df = df.sort_values('Words Practiced', ascending=False)
+                
+                # Display the DataFrame
+                st.dataframe(
+                    df,
+                    column_config={
+                        "Username": st.column_config.TextColumn("User", width=150),
+                        "Type": st.column_config.TextColumn("Type", width=100),
+                        "Words Practiced": st.column_config.NumberColumn("Words", width=80),
+                        "Perfect Words": st.column_config.NumberColumn("Perfect", width=80),
+                        "Last Active": st.column_config.TextColumn("Last Active", width=150)
+                    },
+                    hide_index=True
+                )
     
     # Main practice area
     if 'practice_mode' not in st.session_state:

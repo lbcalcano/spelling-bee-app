@@ -160,8 +160,7 @@ def main():
         with col1:
             st.audio(st.session_state.current_audio, format='audio/mp3')
             if st.button("🔊 Play Word"):
-                # This will trigger the audio to play
-                st.experimental_rerun()
+                st.rerun()
         
         # Generate unique keys for form and input
         form_key = f"word_form_{st.session_state.word_count}_{st.session_state.attempts}"

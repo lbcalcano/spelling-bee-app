@@ -144,12 +144,45 @@ def main():
                 else:
                     st.warning("No words to practice!")
         
-        # Show results
+        # Show detailed results
         if st.session_state.word_stats:
             st.header("Results")
-            for word, attempts in st.session_state.word_stats.items():
-                status = "⭐" if attempts == 1 else "✅" if attempts == 2 else "📝"
-                st.write(f"{status} {word}: {attempts} attempt(s)")
+            
+            # Create a list of tuples with (word, attempts)
+            word_stats_list = [(word, attempts) for word, attempts in st.session_state.word_stats.items()]
+            
+            # Sort by number of attempts (descending)
+            word_stats_list.sort(key=lambda x: x[1], reverse=True)
+            
+            # Create a table
+            st.markdown("""
+            | Word | Status | Attempts | Result |
+            |------|--------|----------|---------|
+            """)
+            
+            for word, attempts in word_stats_list:
+                if attempts == 1:
+                    status = "⭐"
+                    result = "Perfect!"
+                elif attempts == 2:
+                    status = "✅"
+                    result = "Learned"
+                else:
+                    status = "📝"
+                    result = "Needs Practice"
+                
+                st.markdown(f"| {word} | {status} | {attempts} | {result} |")
+            
+            # Add summary statistics
+            st.write("---")
+            st.write("Summary:")
+            perfect = len([w for w, a in word_stats_list if a == 1])
+            learned = len([w for w, a in word_stats_list if a == 2])
+            practice = len([w for w, a in word_stats_list if a > 2])
+            
+            st.write(f"⭐ Perfect first try: {perfect}")
+            st.write(f"✅ Learned after retry: {learned}")
+            st.write(f"📝 Need more practice: {practice}")
     
     else:  # Practice mode
         if not st.session_state.current_words:

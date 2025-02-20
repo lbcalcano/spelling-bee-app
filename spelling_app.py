@@ -476,13 +476,16 @@ def main():
                 else:
                     time_ago = f"{time_diff.days} days ago"
                 
-                # Show progress in the button text
-                progress = f"{last_session['count'] + 1}/{len(last_session['words'])}"
-                if st.button(f"Continue Last Practice ({progress} words, {time_ago})"):
+                # Show remaining words instead of total
+                remaining_words = len(last_session['words']) - last_session['count']
+                progress = f"{remaining_words} words remaining"
+                if st.button(f"Continue Last Practice ({progress}, {time_ago})"):
                     st.session_state.current_words = last_session['words']
-                    st.session_state.word_count = last_session['count']  # This is already correct
+                    st.session_state.word_count = last_session['count']
                     st.session_state.practice_mode = True
-                    st.session_state.current_word = None  # Force new word initialization
+                    st.session_state.current_word = None
+                    st.session_state.attempts = 0  # Reset attempts for new word
+                    game.save_session()  # Save the session immediately
                     st.rerun()
         
         with col3:
@@ -516,7 +519,8 @@ def main():
             
         # Display progress
         total_practice_words = len(st.session_state.current_words)
-        st.write(f"Word {st.session_state.word_count + 1} of {total_practice_words}")
+        remaining_words = total_practice_words - st.session_state.word_count
+        st.write(f"Word {st.session_state.word_count + 1} of {total_practice_words} ({remaining_words} remaining)")
         
         # Audio controls in a more mobile-friendly way
         st.write("👇 Tap the play button below to hear the word:")

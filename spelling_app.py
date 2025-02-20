@@ -10,11 +10,16 @@ import base64
 import time
 import pandas as pd
 import sqlite3
+import hashlib
+import hmac
 
 class SpellingBee:
     def __init__(self):
         self.setup_db()
         self.load_words()
+        # Check authentication
+        self.check_authentication()
+        
         # Initialize session state if not exists
         if 'word_stats' not in st.session_state:
             st.session_state.word_stats = self.load_progress()
@@ -27,6 +32,32 @@ class SpellingBee:
         if 'word_count' not in st.session_state:
             st.session_state.word_count = 0
             
+    def check_authentication(self):
+        if 'username' not in st.session_state:
+            self.show_login()
+        
+    def show_login(self):
+        st.title("🐝 Spelling Bee Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        
+        if st.button("Login"):
+            if self.verify_credentials(username, password):
+                st.session_state.username = username
+                st.rerun()
+            else:
+                st.error("Invalid username or password")
+                
+    def verify_credentials(self, username, password):
+        if "users" not in st.secrets:
+            st.error("No users configured. Please contact administrator.")
+            return False
+        
+        if username not in st.secrets.users:
+            return False
+            
+        return st.secrets.users[username] == password
+    
     def setup_db(self):
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -35,10 +66,14 @@ class SpellingBee:
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
             
-            # Create table if it doesn't exist
+            # Create table with user_id
             c.execute('''
                 CREATE TABLE IF NOT EXISTS progress
-                (word TEXT PRIMARY KEY, attempts INTEGER, last_practiced TEXT)
+                (user_id TEXT,
+                 word TEXT,
+                 attempts INTEGER,
+                 last_practiced TEXT,
+                 PRIMARY KEY (user_id, word))
             ''')
             
             conn.commit()
@@ -61,22 +96,22 @@ class SpellingBee:
             
     def load_progress(self):
         try:
+            if 'username' not in st.session_state:
+                return {}
+                
             script_dir = os.path.dirname(os.path.abspath(__file__))
             db_path = os.path.join(script_dir, "spelling_progress.db")
-            
-            if not os.path.exists(db_path):
-                return {}
             
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
             
-            # Get all progress
-            c.execute('SELECT word, attempts FROM progress')
+            # Get progress for specific user
+            c.execute('SELECT word, attempts FROM progress WHERE user_id = ?', 
+                     (st.session_state.username,))
             results = c.fetchall()
             
             conn.close()
             
-            # Convert results to dictionary
             return {word: attempts for word, attempts in results}
             
         except Exception as e:
@@ -85,18 +120,23 @@ class SpellingBee:
             
     def save_progress(self):
         try:
+            if 'username' not in st.session_state:
+                return
+                
             script_dir = os.path.dirname(os.path.abspath(__file__))
             db_path = os.path.join(script_dir, "spelling_progress.db")
             
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
             
-            # Update or insert progress for each word
+            # Update progress for specific user
             for word, attempts in st.session_state.word_stats.items():
                 c.execute('''
-                    INSERT OR REPLACE INTO progress (word, attempts, last_practiced)
-                    VALUES (?, ?, ?)
-                ''', (word, attempts, datetime.now().isoformat()))
+                    INSERT OR REPLACE INTO progress 
+                    (user_id, word, attempts, last_practiced)
+                    VALUES (?, ?, ?, ?)
+                ''', (st.session_state.username, word, attempts, 
+                     datetime.now().isoformat()))
             
             conn.commit()
             conn.close()
@@ -134,7 +174,9 @@ def main():
         st.info("📱 On mobile devices: Tap 'Play Word' to hear the word. Make sure your sound is on!")
         st.session_state.first_visit = False
     
-    game = SpellingBee()
+    if 'username' not in st.session_state:
+        game = SpellingBee()
+        return
     
     # Sidebar with statistics
     with st.sidebar:
@@ -165,6 +207,12 @@ def main():
             st.session_state.word_count = 0
             st.session_state.show_statistics = False
             game.save_progress()
+            st.rerun()
+        
+        # Add logout button to sidebar
+        st.write(f"Logged in as: {st.session_state.username}")
+        if st.button("Logout"):
+            del st.session_state.username
             st.rerun()
     
     # Main practice area

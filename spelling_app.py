@@ -73,14 +73,6 @@ class SpellingBee:
             # Clean up temp file
             audio_bytes.close()
             
-            # Create HTML with audio element
-            audio_html = f'''
-                <audio controls>
-                    <source src="data:audio/mpeg;base64,{base64.b64encode(audio_bytes_data).decode()}" type="audio/mpeg">
-                    Your browser does not support the audio element.
-                </audio>
-                '''
-            st.components.v1.html(audio_html, height=50)
             return audio_bytes_data
         except Exception as e:
             st.error(f"Error generating audio: {str(e)}")

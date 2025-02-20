@@ -25,22 +25,38 @@ class SpellingBee:
             
     def load_words(self):
         try:
-            with open('spelling_words.csv', 'r') as file:
+            # Get the directory where the script is located
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            csv_path = os.path.join(script_dir, 'spelling_words.csv')
+            
+            with open(csv_path, 'r') as file:
                 reader = csv.reader(file)
                 self.words = [row[0].strip().lower() for row in reader]
-        except:
+        except Exception as e:
+            st.error(f"Could not load words: {str(e)}")
             self.words = ["example", "test", "words"]  # Default words if file not found
             
     def load_progress(self):
         try:
-            with open("spelling_progress.json", 'r') as f:
-                return json.load(f)
-        except:
-            return {}
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            progress_path = os.path.join(script_dir, "spelling_progress.json")
+            
+            if os.path.exists(progress_path):
+                with open(progress_path, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            st.error(f"Could not load progress: {str(e)}")
+        return {}
             
     def save_progress(self):
-        with open("spelling_progress.json", 'w') as f:
-            json.dump(st.session_state.word_stats, f)
+        try:
+            script_dir = os.path.dirname(os.path.dirname(__file__))
+            progress_path = os.path.join(script_dir, "spelling_progress.json")
+            
+            with open(progress_path, 'w') as f:
+                json.dump(st.session_state.word_stats, f)
+        except Exception as e:
+            st.error(f"Could not save progress: {str(e)}")
             
     def speak_word(self, word):
         """Generate speech for the word"""

@@ -40,7 +40,7 @@ class SpellingBee:
         st.markdown("### 🐝 Spelling Bee Login")  # Smaller login header
         
         # Add guest login button with warning
-        st.warning("⚠️ Guest progress will not be saved after closing the app", icon="⚠️")
+        st.warning("⚠️ Guest progress will be lost when you close the browser", icon="⚠️")
         if st.button("👤 Continue as Guest", use_container_width=True):
             # Create a unique guest username
             guest_id = f"guest_{int(time.time())}"

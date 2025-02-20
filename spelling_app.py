@@ -138,7 +138,7 @@ class SpellingBee:
             
             # Get user's password hash
             c.execute('SELECT password_hash FROM users WHERE username = ?', (username,))
-            result = c.fetchone()
+                      c.fetchone()
             
             if not result:
                 return False
@@ -161,10 +161,7 @@ class SpellingBee:
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
             
-            # Drop existing table if it exists
-            c.execute('DROP TABLE IF EXISTS progress')
-            
-            # Create table with user_id
+            # Create progress table
             c.execute('''
                 CREATE TABLE IF NOT EXISTS progress
                 (user_id TEXT,
@@ -172,6 +169,15 @@ class SpellingBee:
                  attempts INTEGER,
                  last_practiced TEXT,
                  PRIMARY KEY (user_id, word))
+            ''')
+            
+            # Create sessions table
+            c.execute('''
+                CREATE TABLE IF NOT EXISTS sessions
+                (user_id TEXT PRIMARY KEY,
+                 current_words TEXT,
+                 word_count INTEGER,
+                 last_updated TEXT)
             ''')
             
             conn.commit()
@@ -258,6 +264,68 @@ class SpellingBee:
             return audio_bytes_data
         except Exception as e:
             st.error(f"Error generating audio: {str(e)}")
+            return None
+
+    def save_session(self):
+        try:
+            if 'username' not in st.session_state or not st.session_state.practice_mode:
+                return
+                
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            db_path = os.path.join(script_dir, "spelling_progress.db")
+            
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            
+            # Save current session
+            c.execute('''
+                INSERT OR REPLACE INTO sessions
+                (user_id, current_words, word_count, last_updated)
+                VALUES (?, ?, ?, ?)
+            ''', (
+                st.session_state.username,
+                ','.join(st.session_state.current_words),
+                st.session_state.word_count,
+                datetime.now().isoformat()
+            ))
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            st.error(f"Could not save session: {str(e)}")
+
+    def load_session(self):
+        try:
+            if 'username' not in st.session_state:
+                return None
+                
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            db_path = os.path.join(script_dir, "spelling_progress.db")
+            
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            
+            # Get last session
+            c.execute('''
+                SELECT current_words, word_count, last_updated
+                FROM sessions
+                WHERE user_id = ?
+            ''', (st.session_state.username,))
+            
+            result = c.fetchone()
+            conn.close()
+            
+            if result:
+                words, count, timestamp = result
+                return {
+                    'words': words.split(','),
+                    'count': count,
+                    'timestamp': timestamp
+                }
+            return None
+            
+        except Exception as e:
+            st.error(f"Could not load session: {str(e)}")
             return None
 
 def main():
@@ -377,30 +445,53 @@ def main():
             st.write(f"📝 Need more practice: {practice}")
     
     elif not st.session_state.practice_mode:
+        # Check for existing session
+        last_session = game.load_session()
+        
         # Add practice buttons
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
+        
         with col1:
             if st.button("Start New Practice"):
                 available_words = [w for w in game.words if w not in st.session_state.word_stats]
                 st.session_state.current_words = random.sample(
                     available_words,
-                    len(available_words)  # Use all available words
+                    len(available_words)
                 )
                 st.session_state.practice_mode = True
                 st.session_state.word_count = 0
+                game.save_session()
                 st.rerun()
         
         with col2:
+            if last_session:
+                last_time = datetime.fromisoformat(last_session['timestamp'])
+                time_diff = datetime.now() - last_time
+                if time_diff.days == 0:
+                    time_ago = "today"
+                elif time_diff.days == 1:
+                    time_ago = "yesterday"
+                else:
+                    time_ago = f"{time_diff.days} days ago"
+                    
+                if st.button(f"Continue Last Practice ({time_ago})"):
+                    st.session_state.current_words = last_session['words']
+                    st.session_state.word_count = last_session['count']
+                    st.session_state.practice_mode = True
+                    st.rerun()
+        
+        with col3:
             if st.button("Practice Wrong Words"):
                 wrong_words = [w for w in game.words if w in st.session_state.word_stats 
                              and st.session_state.word_stats[w] > 1]
                 if wrong_words:
                     st.session_state.current_words = random.sample(
                         wrong_words,
-                        len(wrong_words)  # Use all wrong words
+                        len(wrong_words)
                     )
                     st.session_state.practice_mode = True
                     st.session_state.word_count = 0
+                    game.save_session()
                     st.rerun()
                 else:
                     st.warning("No words to practice!")
@@ -482,6 +573,7 @@ def main():
                         st.rerun()
         
         if st.button("Quit Practice"):
+            game.save_session()  # Save session before quitting
             st.session_state.practice_mode = False
             st.session_state.current_word = None
             st.session_state.current_words = []

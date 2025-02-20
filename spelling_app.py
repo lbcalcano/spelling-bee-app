@@ -104,51 +104,40 @@ def main():
         st.write(f"✅ Completed: {completed}")
         st.write(f"⭐ Perfect first try: {perfect}")
         
+        # Add a divider
+        st.write("---")
+        
+        # Add links to sections
+        if st.session_state.word_stats:
+            if st.button("📊 View Word Statistics", use_container_width=True):
+                st.session_state.show_statistics = True
+                st.session_state.practice_mode = False
+                st.rerun()
+        
         if st.button("Reset Progress"):
             st.session_state.word_stats = {}
             st.session_state.current_word = None
             st.session_state.current_words = []
             st.session_state.attempts = 0
             st.session_state.word_count = 0
+            st.session_state.show_statistics = False
             game.save_progress()
             st.rerun()
     
     # Main practice area
     if 'practice_mode' not in st.session_state:
         st.session_state.practice_mode = False
+    if 'show_statistics' not in st.session_state:
+        st.session_state.show_statistics = False
     
-    if not st.session_state.practice_mode:
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Start New Practice"):
-                available_words = [w for w in game.words if w not in st.session_state.word_stats]
-                st.session_state.current_words = random.sample(
-                    available_words,
-                    len(available_words)  # Use all available words instead of limiting to 10
-                )
-                st.session_state.practice_mode = True
-                st.session_state.word_count = 0
-                st.rerun()
-        
-        with col2:
-            if st.button("Practice Wrong Words"):
-                wrong_words = [w for w in game.words if w in st.session_state.word_stats 
-                              and st.session_state.word_stats[w] > 1]
-                if wrong_words:
-                    st.session_state.current_words = random.sample(
-                        wrong_words,
-                        len(wrong_words)  # Use all wrong words instead of limiting to 10
-                    )
-                    st.session_state.practice_mode = True
-                    st.session_state.word_count = 0
-                    st.rerun()
-                else:
-                    st.warning("No words to practice!")
-        
+    if st.session_state.show_statistics:
+        st.header("Word Statistics")
+        if st.button("← Back to Practice", type="secondary"):
+            st.session_state.show_statistics = False
+            st.rerun()
+            
         # Show detailed results
         if st.session_state.word_stats:
-            st.header("Results")
-            
             # Create a list of dictionaries for the DataFrame
             word_stats_data = []
             for word, attempts in st.session_state.word_stats.items():

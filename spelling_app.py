@@ -169,9 +169,6 @@ def main():
         # Display progress
         st.write(f"Word {st.session_state.word_count + 1} of {len(st.session_state.current_words)}")
         
-        # Single audio player container that we'll reuse
-        audio_container = st.empty()
-        
         # Audio controls in a more mobile-friendly way
         st.write("👇 Tap the play button below to hear the word:")
         
@@ -188,7 +185,7 @@ def main():
                         Your browser does not support the audio element.
                     </audio>
                     '''
-                audio_container.components.v1.html(audio_html, height=50)
+                st.components.v1.html(audio_html, height=50)
         
         # Add a spacer
         st.write("")

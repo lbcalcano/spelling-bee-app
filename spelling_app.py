@@ -81,7 +81,9 @@ class SpellingBee:
 def main():
     st.set_page_config(page_title="Spelling Bee Practice", page_icon="🐝")
     
+    # Title and developer credit
     st.title("🐝 Spelling Bee Practice")
+    st.markdown("<div style='text-align: right; color: gray; font-size: 0.8em;'>Developed by LBC Productions</div>", unsafe_allow_html=True)
     
     # Add mobile instructions
     if st.session_state.get('first_visit', True):
@@ -159,7 +161,8 @@ def main():
             st.session_state.current_audio = audio_data
             
         # Display progress
-        st.write(f"Word {st.session_state.word_count + 1} of {len(st.session_state.current_words)}")
+        total_practice_words = len(st.session_state.current_words)
+        st.write(f"Word {st.session_state.word_count + 1} of {total_practice_words}")
         
         # Audio controls in a more mobile-friendly way
         st.write("👇 Tap the play button below to hear the word:")
@@ -225,6 +228,9 @@ def main():
             st.session_state.current_word = None
             st.session_state.current_words = []
             st.rerun()
+
+    # Add developer credit at the bottom as well
+    st.markdown("<br><hr><div style='text-align: center; color: gray; font-size: 0.8em; padding: 20px;'>Developed by LBC Productions</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main() 

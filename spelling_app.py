@@ -72,11 +72,13 @@ class SpellingBee:
             
             # Get all progress
             c.execute('SELECT word, attempts FROM progress')
-            results = c.dict(c.fetchall())
+            results = c.fetchall()
             
             conn.close()
             
-            return {row[0]: row[1] for row in results}
+            # Convert results to dictionary
+            return {word: attempts for word, attempts in results}
+            
         except Exception as e:
             st.error(f"Could not load progress: {str(e)}")
             return {}

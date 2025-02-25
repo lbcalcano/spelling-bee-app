@@ -138,7 +138,7 @@ class SpellingBee:
             
             # Get user's password hash
             c.execute('SELECT password_hash FROM users WHERE username = ?', (username,))
-            result = c.fetchone()
+                      c.fetchone()
             
             if not result:
                 return False
@@ -461,8 +461,8 @@ def main():
                 # Create DataFrame for user stats
                 df = pd.DataFrame(stats['user_stats'])
                 
-                # Sort by Words Practiced (descending)
-                df = df.sort_values('Words Practiced', ascending=False)
+                # Sort by Perfect Words (descending)
+                df = df.sort_values('Perfect Words', ascending=False)
                 
                 # Display the DataFrame
                 st.dataframe(

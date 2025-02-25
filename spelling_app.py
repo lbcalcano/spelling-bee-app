@@ -371,8 +371,8 @@ class SpellingBee:
                 user_stats.append({
                     'Username': user_id,
                     'Type': 'Guest' if is_guest else 'Registered',
-                    'Words Practiced': words,
-                    'Perfect Words': perfect,
+                    'Words': words,  # Changed from Words Practiced
+                    'Perfect': perfect,  # Changed from Perfect Words
                     'Last Active': datetime.fromisoformat(last_active).strftime('%Y-%m-%d %H:%M')
                 })
             
@@ -461,8 +461,8 @@ def main():
                 # Create DataFrame for user stats
                 df = pd.DataFrame(stats['user_stats'])
                 
-                # Sort by Perfect Words (descending)
-                df = df.sort_values('Perfect Words', ascending=False)
+                # Sort by Perfect (descending)
+                df = df.sort_values('Perfect', ascending=False)
                 
                 # Display the DataFrame
                 st.dataframe(
@@ -470,8 +470,8 @@ def main():
                     column_config={
                         "Username": st.column_config.TextColumn("User", width=150),
                         "Type": st.column_config.TextColumn("Type", width=100),
-                        "Words Practiced": st.column_config.NumberColumn("Words", width=80),
-                        "Perfect Words": st.column_config.NumberColumn("Perfect", width=80),
+                        "Words": st.column_config.NumberColumn("Words", width=80),
+                        "Perfect": st.column_config.NumberColumn("Perfect", width=80),
                         "Last Active": st.column_config.TextColumn("Last Active", width=150)
                     },
                     hide_index=True

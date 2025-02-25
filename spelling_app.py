@@ -602,6 +602,14 @@ def main():
             st.session_state.practice_mode = False
             st.rerun()
             
+        # Add mobile warning at start of practice
+        st.warning("""
+            📱 Important for Mobile Users:
+            1. Turn OFF your keyboard auto-correction
+            2. Type exactly as you hear
+            3. Check your spelling before submitting
+        """)
+        
         # Initialize new word and play audio
         if st.session_state.current_word is None:
             st.session_state.current_word = st.session_state.current_words[st.session_state.word_count]
@@ -642,9 +650,31 @@ def main():
         
         # Word input form
         with st.form(key=form_key):
-            user_input = st.text_input("Type the word and press Enter:", 
-                                     key=input_key,
-                                     value="").strip().lower()
+            # Add custom HTML to disable autocorrect and autocapitalize
+            st.markdown("""
+                <style>
+                /* Disable iOS text input features */
+                input[type="text"] {
+                    -webkit-text-security: none !important;
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
+                    autocorrect: off !important;
+                    -webkit-autocorrect: off !important;
+                    -webkit-autocapitalize: none !important;
+                    autocapitalize: none !important;
+                    spellcheck: false !important;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            user_input = st.text_input(
+                "Type the word and press Enter:", 
+                key=input_key,
+                value="",
+                autocomplete="off",  # Disable browser autocomplete
+                help="Type exactly as shown - turn off your keyboard auto-correction!"  # Add helpful tooltip
+            ).strip().lower()
             submit_button = st.form_submit_button("Submit")
             
             if submit_button:

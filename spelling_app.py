@@ -392,6 +392,33 @@ class SpellingBee:
 def main():
     st.set_page_config(page_title="Spelling Bee Practice", page_icon="🐝")
     
+    # At the top of main(), add this meta tag configuration
+    st.markdown("""
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+            <meta name="format-detection" content="telephone=no">
+            <meta name="autocomplete" content="off">
+            <meta name="autocorrect" content="off">
+        </head>
+        <style>
+            /* Global disable of autocorrect */
+            input, textarea {
+                -webkit-text-security: none !important;
+                -webkit-appearance: none !important;
+                -moz-appearance: none !important;
+                appearance: none !important;
+                autocorrect: off !important;
+                -webkit-autocorrect: off !important;
+                -webkit-autocapitalize: none !important;
+                autocapitalize: none !important;
+                spellcheck: false !important;
+                -webkit-spellcheck: false !important;
+                -ms-spellcheck: false !important;
+                autocomplete: off !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+    
     # Initialize game at the start
     game = SpellingBee()
     
@@ -604,10 +631,15 @@ def main():
             
         # Add mobile warning at start of practice
         st.warning("""
-            📱 Important for Mobile Users:
-            1. Turn OFF your keyboard auto-correction
-            2. Type exactly as you hear
-            3. Check your spelling before submitting
+            📱 iOS Users - Important Setup:
+            1. Go to Settings > General > Keyboard
+            2. Turn OFF:
+               - Auto-Correction
+               - Smart Punctuation
+               - Predictive Text
+            3. Type exactly as you hear
+            
+            This will give you the best spelling practice experience!
         """)
         
         # Initialize new word and play audio
@@ -650,30 +682,20 @@ def main():
         
         # Word input form
         with st.form(key=form_key):
-            # Add custom HTML to disable autocorrect and autocapitalize
-            st.markdown("""
-                <style>
-                /* Disable iOS text input features */
-                input[type="text"] {
-                    -webkit-text-security: none !important;
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                    autocorrect: off !important;
-                    -webkit-autocorrect: off !important;
-                    -webkit-autocapitalize: none !important;
-                    autocapitalize: none !important;
-                    spellcheck: false !important;
-                }
-                </style>
-            """, unsafe_allow_html=True)
-            
             user_input = st.text_input(
                 "Type the word and press Enter:", 
                 key=input_key,
                 value="",
-                autocomplete="off",  # Disable browser autocomplete
-                help="Type exactly as shown - turn off your keyboard auto-correction!"  # Add helpful tooltip
+                autocomplete="off",
+                on_change=None,  # Prevent auto-updates
+                args=(),
+                kwargs={
+                    "autocomplete": "off",
+                    "autocorrect": "off",
+                    "autocapitalize": "off",
+                    "spellcheck": "false"
+                },
+                help="📱 Turn off your keyboard auto-correction in iOS settings for best experience!"
             ).strip().lower()
             submit_button = st.form_submit_button("Submit")
             

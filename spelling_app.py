@@ -187,16 +187,16 @@ class SpellingBee:
 
     def load_words(self):
         try:
-            # Get the directory where the script is located
             script_dir = os.path.dirname(os.path.abspath(__file__))
             csv_path = os.path.join(script_dir, 'spelling_words.csv')
             
             with open(csv_path, 'r') as file:
                 reader = csv.reader(file)
-                self.words = [row[0].strip().lower() for row in reader]
+                # Create a list of tuples with (index, word)
+                self.words = [(i+1, row[0].strip().lower()) for i, row in enumerate(reader)]
         except Exception as e:
             st.error(f"Could not load words: {str(e)}")
-            self.words = ["example", "test", "words"]  # Default words if file not found
+            self.words = [(1, "example"), (2, "test"), (3, "words")]  # Default words if file not found
             
     def load_progress(self):
         try:
@@ -520,23 +520,26 @@ def main():
         if st.session_state.word_stats:
             # Create a list of dictionaries for the DataFrame
             word_stats_data = []
-            for word, attempts in st.session_state.word_stats.items():
-                if attempts == 1:
-                    status = "⭐"
-                    result = "Perfect!"
-                elif attempts == 2:
-                    status = "✅"
-                    result = "Learned"
-                else:
-                    status = "📝"
-                    result = "Needs Practice"
-                
-                word_stats_data.append({
-                    "Word": word,
-                    "Status": status,
-                    "Attempts": attempts,
-                    "Result": result
-                })
+            for num, word in game.words:
+                if word in st.session_state.word_stats:
+                    attempts = st.session_state.word_stats[word]
+                    if attempts == 1:
+                        status = "⭐"
+                        result = "Perfect!"
+                    elif attempts == 2:
+                        status = "✅"
+                        result = "Learned"
+                    else:
+                        status = "📝"
+                        result = "Needs Practice"
+                    
+                    word_stats_data.append({
+                        "Number": num,
+                        "Word": word,
+                        "Status": status,
+                        "Attempts": attempts,
+                        "Result": result
+                    })
             
             # Sort by attempts (descending)
             word_stats_data.sort(key=lambda x: x["Attempts"], reverse=True)
@@ -546,6 +549,7 @@ def main():
             st.dataframe(
                 df,
                 column_config={
+                    "Number": st.column_config.TextColumn("Number", width=50),
                     "Word": st.column_config.TextColumn("Word", width=200),
                     "Status": st.column_config.TextColumn("Status", width=100),
                     "Attempts": st.column_config.NumberColumn("Attempts", width=100),
@@ -566,51 +570,67 @@ def main():
             st.write(f"📝 Need more practice: {practice}")
     
     elif not st.session_state.practice_mode:
-        # Check for existing session
-        last_session = game.load_session()
+        st.write("### Select Words to Practice")
         
-        # Add practice buttons
-        col1, col2, col3 = st.columns(3)
+        # Display total available words
+        total_words = len(game.words)
+        st.write(f"Total available words: {total_words}")
         
+        # Add word range selector
+        col1, col2 = st.columns(2)
+        with col1:
+            range_option = st.radio(
+                "Choose practice range:",
+                ["All Words", "Select Range", "View Word List"],
+                key="range_option"
+            )
+        
+        if range_option == "Select Range":
+            with col2:
+                start_num = st.number_input("Start from word #", 
+                    min_value=1, 
+                    max_value=total_words,
+                    value=1
+                )
+                end_num = st.number_input("End at word #", 
+                    min_value=start_num,
+                    max_value=total_words,
+                    value=min(start_num + 9, total_words)
+                )
+                
+                selected_words = [word for i, word in game.words 
+                                if i >= start_num and i <= end_num]
+        
+        elif range_option == "View Word List":
+            # Show the word list with numbers
+            st.write("### Word List")
+            for num, word in game.words:
+                st.write(f"{num}. {word}")
+            return
+        
+        else:  # All Words
+            selected_words = [word for _, word in game.words]
+        
+        col1, col2 = st.columns(2)
         with col1:
             if st.button("Start New Practice"):
-                available_words = [w for w in game.words if w not in st.session_state.word_stats]
-                st.session_state.current_words = random.sample(
-                    available_words,
-                    len(available_words)
-                )
-                st.session_state.practice_mode = True
-                st.session_state.word_count = 0
-                game.save_session()
-                st.rerun()
+                available_words = [w for w in selected_words 
+                                 if w not in st.session_state.word_stats]
+                if available_words:
+                    st.session_state.current_words = random.sample(
+                        available_words,
+                        len(available_words)
+                    )
+                    st.session_state.practice_mode = True
+                    st.session_state.word_count = 0
+                    st.rerun()
+                else:
+                    st.warning("No new words to practice in selected range!")
         
         with col2:
-            if last_session:
-                last_time = datetime.fromisoformat(last_session['timestamp'])
-                time_diff = datetime.now() - last_time
-                if time_diff.days == 0:
-                    time_ago = "today"
-                elif time_diff.days == 1:
-                    time_ago = "yesterday"
-                else:
-                    time_ago = f"{time_diff.days} days ago"
-                
-                # Show remaining words instead of total
-                current_word_index = last_session['count']
-                remaining_words = len(last_session['words']) - current_word_index
-                progress = f"{remaining_words} words remaining"
-                
-                if st.button(f"Continue Last Practice ({progress}, {time_ago})"):
-                    st.session_state.current_words = last_session['words']
-                    st.session_state.word_count = current_word_index  # Use the exact index
-                    st.session_state.practice_mode = True
-                    st.session_state.current_word = None
-                    st.session_state.attempts = 0
-                    st.rerun()
-        
-        with col3:
             if st.button("Practice Wrong Words"):
-                wrong_words = [w for w in game.words if w in st.session_state.word_stats 
+                wrong_words = [w for w in selected_words 
+                             if w in st.session_state.word_stats 
                              and st.session_state.word_stats[w] > 1]
                 if wrong_words:
                     st.session_state.current_words = random.sample(
@@ -619,10 +639,9 @@ def main():
                     )
                     st.session_state.practice_mode = True
                     st.session_state.word_count = 0
-                    game.save_session()
                     st.rerun()
                 else:
-                    st.warning("No words to practice!")
+                    st.warning("No words to practice in selected range!")
     
     else:  # Practice mode
         if not st.session_state.current_words:

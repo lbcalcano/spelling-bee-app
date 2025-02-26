@@ -598,8 +598,8 @@ def main():
                     value=min(start_num + 9, total_words)
                 )
                 
-                selected_words = [word for i, word in game.words 
-                                if i >= start_num and i <= end_num]
+                selected_words = [word_tuple for word_tuple in game.words 
+                                if start_num <= word_tuple[0] <= end_num]
         
         elif range_option == "View Word List":
             # Show the word list with numbers
@@ -609,7 +609,7 @@ def main():
             return
         
         else:  # All Words
-            selected_words = [word for _, word in game.words]
+            selected_words = game.words  # Keep the tuples for all words
         
         col1, col2 = st.columns(2)
         with col1:
@@ -648,22 +648,12 @@ def main():
             st.session_state.practice_mode = False
             st.rerun()
             
-        # Add mobile warning at start of practice
-        st.warning("""
-            📱 iOS Users - Important Setup:
-            1. Go to Settings > General > Keyboard
-            2. Turn OFF:
-               - Auto-Correction
-               - Smart Punctuation
-               - Predictive Text
-            3. Type exactly as you hear
-            
-            This will give you the best spelling practice experience!
-        """)
-        
         # Initialize new word and play audio
         if st.session_state.current_word is None:
-            st.session_state.current_word = st.session_state.current_words[st.session_state.word_count]
+            # Get both number and word
+            current_word_tuple = st.session_state.current_words[st.session_state.word_count]
+            # Store just the word part for audio and comparison
+            st.session_state.current_word = current_word_tuple[1] if isinstance(current_word_tuple, tuple) else current_word_tuple
             st.session_state.attempts = 0
             # Generate audio
             audio_data = game.speak_word(st.session_state.current_word)
@@ -672,7 +662,12 @@ def main():
         # Display progress
         total_practice_words = len(st.session_state.current_words)
         remaining_words = total_practice_words - st.session_state.word_count
-        st.write(f"Word {st.session_state.word_count + 1} of {total_practice_words} ({remaining_words} remaining)")
+        
+        # Get the word number if it's a tuple
+        current_word_tuple = st.session_state.current_words[st.session_state.word_count]
+        word_num = current_word_tuple[0] if isinstance(current_word_tuple, tuple) else "?"
+        
+        st.write(f"Word #{word_num} ({st.session_state.word_count + 1} of {total_practice_words}, {remaining_words} remaining)")
         
         # Audio controls in a more mobile-friendly way
         st.write("👇 Tap the play button below to hear the word:")
